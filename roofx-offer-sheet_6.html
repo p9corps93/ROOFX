@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROOFX — Catch every job</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.23/dist/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+<link rel="stylesheet" href="https://assets.calendly.com/assets/external/widget.css">
+<style>/* hard override — prevent any CDN stylesheet from bleeding white */
+html,body{background:#070708!important}
+</style>
+<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+<style>
+  :root{
+    --bg:#070708; --panel:#0E0E11;
+    --glass:rgba(255,255,255,.04); --glass-h:rgba(255,255,255,.07);
+    --white:#F5F5F7; --red:#ED2024; --red-l:#FF4146;
+    --gray:#9A9AA4; --gray-2:#5C5C66;
+    --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;background:#070708}
+  html.lenis,html.lenis body{height:auto}
+  .lenis.lenis-smooth{scroll-behavior:auto!important}
+  .lenis.lenis-smooth [data-lenis-prevent]{overscroll-behavior:contain}
+  .lenis.lenis-stopped{overflow:clip}
+  body{font-family:'Montserrat',sans-serif;background:#070708!important;color:#F5F5F7;
+    font-weight:300;line-height:1.65;-webkit-font-smoothing:antialiased;
+    overflow-x:clip} /* clip not hidden — hidden breaks sticky on Firefox */
+  .wrap{max-width:1140px;margin:0 auto;padding:0 32px;position:relative;z-index:2}
+  a{color:inherit;text-decoration:none}
+  .lbl{font-size:.72rem;letter-spacing:.3em;text-transform:uppercase;font-weight:700;color:var(--red-l)}
+  .glow-r{position:absolute;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;
+    background:radial-gradient(circle,rgba(237,32,36,.35),transparent 68%)}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.88rem;letter-spacing:.02em;
+    padding:15px 32px;border-radius:100px;border:1px solid transparent;cursor:pointer;
+    transition:transform .45s cubic-bezier(.16,1,.3,1),box-shadow .45s cubic-bezier(.16,1,.3,1)}
+  .btn.pri{background:linear-gradient(130deg,var(--red-l),var(--red));color:#fff;
+    box-shadow:0 10px 32px rgba(237,32,36,.4)}
+  .btn.pri:hover{transform:translateY(-3px);box-shadow:0 18px 48px rgba(237,32,36,.6)}
+  .btn.gls{background:rgba(0,0,0,.45);color:var(--white);border-color:var(--line-2);backdrop-filter:blur(12px)}
+  .btn.gls:hover{background:rgba(0,0,0,.65);transform:translateY(-2px)}
+
+  /* no white glare — keep everything dark */
+  .js-tilt-glare{display:none!important}
+  /* keep card backgrounds deep dark, no white sheen */
+  .pc,.fc,.st{background:#0D0D0F!important}
+  .pc:hover,.fc:hover{background:#0F0F12!important}
+
+  /* ── nav ── */
+  nav{position:sticky;top:0;z-index:60;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    background:rgba(7,7,8,.75);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{font-weight:800;font-size:1.45rem;letter-spacing:.01em}
+  .logo s{color:var(--red-l);text-decoration:none}
+  .nav-l{display:flex;gap:36px;font-size:.88rem;color:var(--gray)}
+  .nav-l a:hover{color:var(--white)}
+
+  /* ── hero ── */
+  .hero{position:relative;min-height:100vh;display:flex;align-items:center;
+    text-align:center;overflow:hidden;padding:100px 0 60px}
+  #roof3d{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;z-index:0}
+  #roof3d canvas{display:block;width:100%;height:100%}
+  .hero-overlay{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;z-index:1;pointer-events:none;
+    background:
+      linear-gradient(to bottom, rgba(7,7,8,.88) 0%, rgba(7,7,8,.3) 22%, rgba(7,7,8,.05) 46%,
+                      rgba(7,7,8,.1) 66%, rgba(7,7,8,.8) 88%, rgba(7,7,8,1) 100%),
+      linear-gradient(to right, rgba(7,7,8,.7) 0%, transparent 22%, transparent 78%, rgba(7,7,8,.7) 100%)}
+  .hero .in{position:relative;z-index:3;width:100%}
+  /* hero children visible by default — GSAP animates from opacity:0, but CSS ensures they show if GSAP fails */
+  [data-hero] > *{opacity:1}
+  .badge{display:inline-flex;align-items:center;gap:9px;font-size:.78rem;font-weight:600;color:var(--gray);
+    border:1px solid var(--line-2);border-radius:100px;padding:8px 20px;margin-bottom:32px;
+    background:rgba(255,255,255,.03);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--red-l);
+    box-shadow:0 0 10px var(--red-l);flex-shrink:0}
+  .hero h1{font-weight:800;font-size:clamp(3rem,7.4vw,6.2rem);line-height:.97;letter-spacing:-.03em;
+    max-width:15ch;margin:0 auto 26px}
+  .hero h1 em{font-style:normal;color:var(--red-l)}
+  .hero .sub{font-size:1.15rem;color:var(--gray);max-width:44ch;margin:0 auto 40px;font-weight:300}
+  .hero .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .cue{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);z-index:3;
+    display:flex;flex-direction:column;align-items:center;gap:7px;
+    font-size:.66rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gray-2)}
+  .cue span{width:1px;height:36px;background:linear-gradient(var(--red-l),transparent)}
+
+  /* ── stats ── */
+  .stats{padding:72px 0;border-bottom:1px solid var(--line);position:relative;overflow:hidden;background:#070708}
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative;z-index:2}
+  .st{text-align:center;padding:32px 20px;
+    background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%);
+    border:1px solid rgba(255,255,255,.08);border-radius:16px;cursor:pointer;
+    transform-style:preserve-3d;will-change:transform;
+    transition:border-color .45s cubic-bezier(.16,1,.3,1),box-shadow .45s cubic-bezier(.16,1,.3,1)}
+  .st:hover{border-color:rgba(237,32,36,.3);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .st .big{font-weight:900;font-size:clamp(2rem,4vw,3rem);line-height:1;letter-spacing:-.025em}
+  .st .big.accent{color:var(--red-l)}
+  .st .cap{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);margin-top:10px}
+
+  /* ── sections ── */
+  section.block{position:relative;padding:130px 0;overflow:hidden;background:#070708}
+  .sec-h{text-align:center;max-width:min(820px,92%);margin:0 auto 68px}
+  .sec-h h2{font-weight:800;font-size:clamp(2rem,5vw,3.6rem);line-height:1.08;
+    letter-spacing:-.025em;margin-top:16px}
+  .sec-h p{color:var(--gray);margin-top:16px;font-weight:300;max-width:52ch;margin-left:auto;margin-right:auto}
+
+  /* problem */
+  .prow{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative;z-index:2}
+  .pc{background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%);
+    border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:38px 32px;cursor:pointer;
+    transform-style:preserve-3d;will-change:transform;
+    transition:border-color .45s cubic-bezier(.16,1,.3,1),box-shadow .45s cubic-bezier(.16,1,.3,1)}
+  .pc:hover{border-color:rgba(237,32,36,.5);
+    box-shadow:0 0 0 1px rgba(237,32,36,.2),0 16px 48px rgba(0,0,0,.4)}
+  .pc .n{font-weight:900;font-size:1.6rem;color:var(--red-l);margin-bottom:18px}
+  .pc h3{font-weight:700;font-size:1.18rem;margin-bottom:10px}
+  .pc p{color:var(--gray);font-size:.95rem;font-weight:300}
+
+  /* features */
+  .frow{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative;z-index:2}
+  .fc{background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%);
+    border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:36px 32px;cursor:pointer;
+    transform-style:preserve-3d;will-change:transform;
+    transition:border-color .45s cubic-bezier(.16,1,.3,1),box-shadow .45s cubic-bezier(.16,1,.3,1)}
+  .fc:hover{border-color:rgba(237,32,36,.4);
+    box-shadow:0 0 0 1px rgba(237,32,36,.2),0 16px 48px rgba(237,32,36,.1),0 0 60px rgba(237,32,36,.06)}
+  .fc .ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:1.15rem;margin-bottom:20px;background:rgba(237,32,36,.15);
+    border:1px solid rgba(237,32,36,.38);box-shadow:0 0 20px rgba(237,32,36,.12)}
+  .fc h3{font-weight:700;font-size:1.15rem;margin-bottom:9px}
+  .fc p{color:var(--gray);font-size:.93rem;font-weight:300}
+
+  /* process */
+  .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:46px;position:relative;z-index:2;
+    padding-top:16px;position:relative}
+  .srow::before{content:'';position:absolute;top:30px;left:15%;right:15%;height:1px;
+    background:linear-gradient(90deg,transparent,var(--red-l),transparent)}
+  .sv{text-align:center}
+  .sv .ring{width:60px;height:60px;border-radius:50%;border:1px solid var(--line-2);
+    margin:0 auto 22px;display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:1.25rem;color:var(--red-l);background:var(--panel)}
+  .sv h3{font-weight:700;font-size:1.18rem;margin-bottom:9px}
+  .sv p{color:var(--gray);font-size:.93rem;font-weight:300;max-width:28ch;margin:0 auto}
+
+  /* investment */
+  .inv-w{padding:130px 0;position:relative;background:#070708}
+  .inv-card{position:relative;z-index:2;max-width:940px;margin:0 auto;border-radius:32px;
+    border:1px solid var(--line-2);overflow:hidden;padding:68px;
+    display:grid;grid-template-columns:1.1fr .9fr;gap:52px;align-items:center;
+    background:linear-gradient(150deg,#161618 0%,#0b0b0d 65%)}
+  .inv-card .iglow{position:absolute;right:-100px;top:-100px;
+    width:400px;height:400px;border-radius:50%;
+    background:radial-gradient(circle,rgba(237,32,36,.45),transparent 68%);filter:blur(80px)}
+  .inv-card h3{font-weight:800;font-size:clamp(1.9rem,3.4vw,2.6rem);line-height:1.04;
+    letter-spacing:-.02em;margin:14px 0 18px;position:relative}
+  .inv-card .note{color:var(--gray);font-size:.96rem;font-weight:300;max-width:34ch;position:relative}
+  .ibox{position:relative;z-index:2;border-left:1px solid var(--line);padding-left:46px}
+  .amt{font-weight:900;font-size:3.8rem;line-height:1;letter-spacing:-.02em}
+  .amt small{display:block;font-size:.7rem;font-weight:700;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--gray);margin-top:10px}
+  .then-row{margin:22px 0;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .then-row b{font-weight:800;font-size:1.75rem}
+  .then-row span{display:block;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--gray);margin-top:4px}
+  .ibox .btn{width:100%;justify-content:center;margin-top:4px}
+  .spots{text-align:center;font-size:.76rem;color:var(--red-l);font-weight:700;letter-spacing:.08em;margin-top:14px}
+
+  /* close */
+  .close{position:relative;text-align:center;padding:160px 0 90px;overflow:hidden;background:#070708}
+  .close h2{font-weight:800;font-size:clamp(2.8rem,7.5vw,6rem);letter-spacing:-.03em;
+    line-height:.97;margin-bottom:20px;position:relative;z-index:2;max-width:min(900px,92%);margin-left:auto;margin-right:auto}
+  .close h2 em{font-style:normal;color:var(--red-l)}
+  .close .sub{color:var(--gray);max-width:40ch;margin:0 auto 36px;position:relative;z-index:2;font-weight:300}
+  .close .cta-row{display:flex;gap:14px;justify-content:center;position:relative;z-index:2}
+  .close .contact{margin-top:36px;font-size:.82rem;letter-spacing:.05em;color:var(--gray-2);
+    position:relative;z-index:2}
+  .close .contact a{color:var(--red-l)}
+
+  footer{border-top:1px solid var(--line);padding:48px 0;text-align:center;background:#070708}
+  footer .logo{margin-bottom:8px}
+  footer p{color:var(--gray-2);font-size:.78rem;letter-spacing:.06em}
+
+  /* ── MOBILE ── */
+  @media(max-width:860px){
+    .wrap{padding:0 20px}
+    .nav-l{display:none}
+    .nav .btn{padding:10px 18px;font-size:.78rem}
+    /* hero: proper mobile height, less top padding */
+    .hero{padding:80px 0 50px;min-height:100svh;min-height:100vh}
+    .hero h1{font-size:clamp(2.4rem,8.5vw,3.6rem);max-width:100%}
+    .hero .sub{font-size:.98rem;max-width:92%}
+    .badge{font-size:.7rem;padding:7px 14px}
+    .hero .cta-row{flex-direction:column;align-items:center;gap:10px}
+    .hero .cta-row .btn{width:100%;max-width:320px;justify-content:center}
+    /* section padding */
+    section.block{padding:72px 0}
+    .inv-w{padding:72px 0}
+    .close{padding:90px 0 56px}
+    .close h2{font-size:clamp(2.2rem,9.5vw,3.8rem)}
+    .close .cta-row{flex-direction:column;align-items:center}
+    .close .cta-row .btn{width:100%;max-width:320px;justify-content:center}
+    /* stats */
+    .stat-row{grid-template-columns:1fr 1fr;gap:12px}
+    .st{padding:24px 16px}
+    /* cards */
+    .prow,.frow{grid-template-columns:1fr;gap:14px}
+    .fc,.pc{padding:28px 22px}
+    /* process */
+    .srow{grid-template-columns:1fr;gap:32px}
+    .srow::before{display:none}
+    /* pricing */
+    .inv-card{grid-template-columns:1fr;padding:38px 24px;gap:28px}
+    .ibox{border-left:none;border-top:1px solid var(--line);padding-left:0;padding-top:28px}
+    .amt{font-size:3rem}
+    .ibox .btn{padding:14px 24px}
+    /* hide scroll cue on mobile */
+    .cue{display:none}
+    /* sec head */
+    .sec-h{max-width:100%;margin-bottom:44px}
+    .sec-h h2{font-size:clamp(1.8rem,6.5vw,2.8rem)}
+  }
+  /* extra small phones */
+  @media(max-width:420px){
+    .stat-row{grid-template-columns:1fr 1fr}
+    .hero h1{font-size:clamp(2rem,9vw,2.8rem)}
+    .inv-card{padding:30px 18px}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap nav-in">
+    <div class="logo">ROOF<s>X</s></div>
+    <div class="nav-l">
+      <a href="#why">Why ROOFX</a>
+      <a href="#features">What you get</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <a href="#pricing" class="btn pri">Book a call</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div id="roof3d"></div>
+  <div class="hero-overlay"></div>
+  <div class="wrap">
+    <div class="in" data-hero>
+      <span class="badge"><span class="dot"></span>Live in 72 hours · Only 9 spots this month</span>
+      <h1>Catch every job <em>before</em> your competitor does.</h1>
+      <p class="sub">We rebrand your company, build a site homeowners trust, and make sure every lead is caught the moment it comes in.</p>
+      <div class="cta-row">
+        <a href="#pricing" class="btn pri">Book a call &nbsp;→</a>
+        <a href="#why" class="btn gls">See how it works</a>
+      </div>
+    </div>
+  </div>
+  <div class="cue"><span>Scroll</span><span></span></div>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="glow-r" style="width:640px;height:300px;left:50%;transform:translateX(-50%);top:-40px;opacity:.45"></div>
+  <div class="wrap">
+    <div class="stat-row" data-stagger>
+      <div class="st"><div class="big accent" data-count="10" data-suffix="K+">$0K+</div><div class="cap">Average roof job</div></div>
+      <div class="st"><div class="big" data-count="12" data-suffix="s">0s</div><div class="cap">Lead response time</div></div>
+      <div class="st"><div class="big" data-count="72" data-suffix="h">0h</div><div class="cap">Kickoff to live</div></div>
+      <div class="st"><div class="big accent" data-count="9">0</div><div class="cap">New roofers per month</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY ROOFX -->
+<section class="block" id="why">
+  <div class="wrap">
+    <div class="sec-h" data-rise>
+      <span class="lbl">Why ROOFX</span>
+      <h2>Homeowners call three roofers. The fastest one wins.</h2>
+      <p>You're on a roof, not by the phone. By the time you call back, the job's already gone.</p>
+    </div>
+    <div class="prow" data-stagger>
+      <div class="pc"><div class="n">01</div><h3>The missed call</h3><p>Every unanswered call is a $10,000 job handed straight to whoever picks up first.</p></div>
+      <div class="pc"><div class="n">02</div><h3>The slow callback</h3><p>A late reply loses the bid before you've left the driveway. Speed wins in roofing.</p></div>
+      <div class="pc"><div class="n">03</div><h3>The flat website</h3><p>Nobody lets a stranger onto their roof. If your site looks cheap, you're already disqualified.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="block" id="features" style="background:linear-gradient(180deg,var(--bg) 0%,var(--panel) 14%,var(--panel) 86%,var(--bg) 100%)">
+  <div class="glow-r" style="width:700px;height:400px;right:-220px;top:160px;opacity:.28"></div>
+  <div class="wrap">
+    <div class="sec-h" data-rise>
+      <span class="lbl">What you get</span>
+      <h2>Everything you need to look established and stay booked.</h2>
+    </div>
+    <div class="frow" data-stagger>
+      <div class="fc"><div class="ic">◆</div><h3>Brand elevation</h3><p>We take your existing brand and make it sharper, cleaner, and more premium — no logo change needed.</p></div>
+      <div class="fc"><div class="ic">▣</div><h3>Premium website</h3><p>A custom, high-end site that builds trust instantly and turns visitors into estimate requests.</p></div>
+      <div class="fc"><div class="ic">☎</div><h3>Missed-call recovery</h3><p>The second you can't pick up, an automatic text fires off so the lead never reaches a competitor.</p></div>
+      <div class="fc"><div class="ic">⏱</div><h3>Smart follow-up</h3><p>Automatic reminders and instant lead replies that keep jobs from slipping through the cracks.</p></div>
+      <div class="fc"><div class="ic">✦</div><h3>Instant estimate funnel</h3><p>A "get my free estimate" flow homeowners can use in seconds, from any device, any time.</p></div>
+      <div class="fc"><div class="ic">↻</div><h3>Hosting &amp; support</h3><p>Fast secure hosting and a real person for changes — the tech is fully handled, end to end.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="block">
+  <div class="wrap">
+    <div class="sec-h" data-rise><span class="lbl">How it works</span><h2>Live in 72 hours.</h2></div>
+    <div class="srow" data-stagger>
+      <div class="sv"><div class="ring">1</div><h3>Discovery</h3><p>A short call and a quick brief. We learn your company, your area, and your goals.</p></div>
+      <div class="sv"><div class="ring">2</div><h3>Build</h3><p>We elevate the brand, build the site, and wire every lead-catching automation.</p></div>
+      <div class="sv"><div class="ring">3</div><h3>Go live</h3><p>Within 72 hours you're live — looking established with every lead caught.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- INVESTMENT -->
+<section class="inv-w" id="pricing">
+  <div class="glow-r" style="width:500px;height:500px;left:-180px;top:50%;transform:translateY(-50%);opacity:.3"></div>
+  <div class="wrap">
+    <div class="inv-card" data-rise>
+      <div class="iglow"></div>
+      <div>
+        <span class="lbl">The investment</span>
+        <h3>The Lead-Catcher Setup</h3>
+        <p class="note">One build, one simple monthly — live in 72 hours. Most contractors make it back on a single job.</p>
+      </div>
+      <div class="ibox">
+        <div class="amt">$999<small>One-time setup</small></div>
+        <div class="then-row"><b>$150</b><span>per month — hosting, maintenance &amp; support</span></div>
+        <a href="#" class="btn pri">Claim your spot</a>
+        <p class="spots">Only 9 spots left this month</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSE -->
+<section class="close">
+  <div class="glow-r" style="width:800px;height:500px;left:50%;transform:translateX(-50%);bottom:-200px;opacity:.55"></div>
+  <div class="wrap">
+    <h2 data-rise>Win the next <em>storm</em>.</h2>
+    <p class="sub" data-rise>Book a quick call and we'll show you exactly where the leads are leaking — and what your company could look like.</p>
+    <div class="cta-row" data-rise>
+      <a href="#" class="btn pri">Book your call &nbsp;→</a>
+      <a href="#why" class="btn gls">See how it works</a>
+    </div>
+    <p class="contact">hello@roofx.co &nbsp;·&nbsp; <a href="#">roofx.co/book</a></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="logo">ROOF<s style="color:var(--red-l);text-decoration:none">X</s></div>
+    <p>© ROOFX · Built to win jobs.</p>
+  </div>
+</footer>
+
+<!-- ════════════ 3D GABLED ROOF ════════════ -->
+<script>
+(function(){
+  var mount = document.getElementById('roof3d');
+  if(!mount || !window.THREE) return;
+
+  var W = mount.clientWidth  || window.innerWidth;
+  var H = mount.clientHeight || window.innerHeight;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var renderer;
+  try { renderer = new THREE.WebGLRenderer({antialias:true, alpha:true}); }
+  catch(e){ return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = false;
+  mount.appendChild(renderer.domElement);
+
+  var scene  = new THREE.Scene();
+  scene.fog  = new THREE.Fog(0x070708, 16, 90);   /* pushed far so roof + stars stay visible */
+
+  var camera = new THREE.PerspectiveCamera(52, W/H, 0.1, 140);
+  camera.position.set(2, 8.5, 11);                /* ← standing on back slope, looking over ridge */
+  camera.lookAt(0, 2.5, -1);
+
+  /* ── lights ── */
+  scene.add(new THREE.AmbientLight(0x3a3f47, 0.85));        /* lifted so tiles have base visibility */
+
+  var key = new THREE.DirectionalLight(0xd0ddf0, 1.6);
+  key.position.set(-8, 14, 10); scene.add(key);             /* key from camera-left-above, brighter */
+
+  var top = new THREE.DirectionalLight(0xffffff, 0.7);
+  top.position.set(0, 20, 2); scene.add(top);               /* overhead — makes all shingle faces pop */
+
+  var fill = new THREE.DirectionalLight(0x8fa0c0, 0.45);
+  fill.position.set(10, 6, -12); scene.add(fill);           /* fill from camera-right-back */
+
+  var red = new THREE.PointLight(0xED2024, 5.5, 42, 1);     /* brand glow – sweeps along ridge */
+  red.position.set(0, 6, 0); scene.add(red);
+
+  var rimL = new THREE.PointLight(0xED2024, 2.2, 28, 1);
+  rimL.position.set(-12, 5, 1); scene.add(rimL);            /* red rim left */
+
+  /* ── geometry constants ── */
+  var ROWS  = 20;          /* rows per slope (ridge→eave) */
+  var COLS  = 36;          /* columns across width */
+  var TW    = 1.05;        /* tile width */
+  var TD    = 0.70;        /* tile depth */
+  var PITCH = 0.42;        /* roof pitch radians ≈ 24°  ← tune steepness */
+
+  var SLOPE_LEN = ROWS * TD;
+  var RIDGE_H   = SLOPE_LEN * Math.sin(PITCH);  /* ≈ 5.75 */
+  var EAVE_D    = SLOPE_LEN * Math.cos(PITCH);  /* ≈ 12.7 */
+  var ROOF_W    = COLS * TW;                    /* ≈ 37.8 */
+
+  /* shingle material — lighter slate so tiles contrast against black bg */
+  var shinMat = new THREE.MeshStandardMaterial({
+    color: 0x1e2028, roughness: 0.72, metalness: 0.22
+  });
+
+  /* build both slopes in a single InstancedMesh */
+  var count  = ROWS * COLS * 2;
+  var shinGeo = new THREE.BoxGeometry(TW * 0.96, 0.14, TD * 0.94);
+  var shingles = new THREE.InstancedMesh(shinGeo, shinMat, count);
+  shingles.frustumCulled = false;
+  var dummy = new THREE.Object3D();
+  var idx = 0;
+
+  function addSlope(zDir) {
+    /* zDir: -1 = front slope (toward viewer), +1 = back slope */
+    var rxAngle = zDir * PITCH; /* tile tilt to lie flat on slope */
+    for(var row = 0; row < ROWS; row++){
+      var t   = row / (ROWS - 1);          /* 0 at ridge, 1 at eave */
+      var wy  = RIDGE_H * (1 - t);         /* world Y interpolated */
+      var wz  = zDir * EAVE_D * t;         /* world Z along slope */
+      var off = (row % 2) ? TW * 0.5 : 0; /* brick offset */
+      for(var col = 0; col < COLS; col++){
+        dummy.position.set((col - COLS/2) * TW + off,
+                           wy + (Math.random()-0.5)*0.03,
+                           wz);
+        dummy.rotation.set(rxAngle + (Math.random()-0.5)*0.018, 0,
+                           (Math.random()-0.5)*0.018);
+        dummy.scale.set(0.96 + Math.random()*0.06, 1, 0.97 + Math.random()*0.05);
+        dummy.updateMatrix();
+        shingles.setMatrixAt(idx++, dummy.matrix);
+      }
+    }
+  }
+  addSlope(-1); /* front slope */
+  addSlope(+1); /* back slope  */
+  shingles.instanceMatrix.needsUpdate = true;
+  scene.add(shingles);
+
+  /* ridge cap — slightly lighter so it reads as a distinct structural line */
+  var ridgeMat = new THREE.MeshStandardMaterial({color:0x282a36, roughness:0.65, metalness:0.25});
+  var ridge = new THREE.Mesh(new THREE.BoxGeometry(ROOF_W + 2, 0.38, 0.55), ridgeMat);
+  ridge.position.set(0, RIDGE_H + 0.12, 0);
+  scene.add(ridge);
+
+  /* chimney – front slope, left side */
+  var chimH = 3.0;
+  var chimY = RIDGE_H * (1 - 5/19) + chimH/2 + 0.1;
+  var chimZ = -(EAVE_D * (5/19));
+  var chimMat = new THREE.MeshStandardMaterial({color:0x1a1a22, roughness:0.9, metalness:0.05});
+  var chim = new THREE.Mesh(new THREE.BoxGeometry(1.5, chimH, 1.5), chimMat);
+  chim.position.set(-8, chimY, chimZ);
+  scene.add(chim);
+
+  /* front eave edge (fascia) */
+  var fascia = new THREE.Mesh(new THREE.BoxGeometry(ROOF_W + 1.5, 0.18, 0.28), ridgeMat);
+  fascia.position.set(0, 0, -EAVE_D);
+  scene.add(fascia);
+
+  /* ── starfield ── 500 stars in the upper hemisphere above the roof */
+  var starGeo = new THREE.BufferGeometry();
+  var STAR_COUNT = 500;
+  var starPos = new Float32Array(STAR_COUNT * 3);
+  for(var s = 0; s < STAR_COUNT; s++){
+    var theta = Math.random() * Math.PI * 2;
+    var phi   = Math.random() * Math.PI * 0.55;          /* upper hemisphere spread */
+    var r     = 38 + Math.random() * 28;                 /* radius 38–66 from origin */
+    starPos[s*3]   = r * Math.sin(phi) * Math.cos(theta);
+    starPos[s*3+1] = Math.abs(r * Math.cos(phi)) + 7;   /* always above roof ridge */
+    starPos[s*3+2] = r * Math.sin(phi) * Math.sin(theta);
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  var starMat = new THREE.PointsMaterial({
+    color: 0xFFFFFF,
+    size: 0.16,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.92
+  });
+  var stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  /* ── mouse parallax ── */
+  var mx = 0, my = 0;
+  window.addEventListener('pointermove', function(e){
+    mx = (e.clientX / window.innerWidth  - 0.5);
+    my = (e.clientY / window.innerHeight - 0.5);
+  });
+
+  window.addEventListener('resize', function(){
+    W = mount.clientWidth; H = mount.clientHeight;
+    camera.aspect = W/H; camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+
+  /* ── render loop ── */
+  var t = 0, running = true;
+  document.addEventListener('visibilitychange', function(){
+    running = !document.hidden;
+    if(running && !reduce) loop();
+  });
+
+  function frame(){
+    t += 0.005;
+    /* red glow sweeps slowly along ridge */
+    red.position.x  = Math.sin(t * 0.6) * (ROOF_W * 0.32);
+    red.position.z  = Math.cos(t * 0.4) * 4;
+    red.intensity    = 5 + Math.sin(t * 1.4) * 0.9;
+    rimL.position.x  = -10 + Math.sin(t * 0.5) * 6;
+
+    /* stars — slow drift + subtle twinkle */
+    stars.rotation.y += 0.00018;
+    starMat.opacity   = 0.82 + Math.sin(t * 2.1) * 0.08 + Math.cos(t * 1.6) * 0.05;
+
+    /* gentle camera drift + mouse parallax */
+    var targetX =  2 + mx * 2.8;
+    var targetY =  8.5 - my * 1.4 + Math.sin(t * 0.7) * 0.2;
+    camera.position.x += (targetX - camera.position.x) * 0.04;
+    camera.position.y += (targetY - camera.position.y) * 0.04;
+    camera.lookAt(0, 2.5, -1);
+
+    renderer.render(scene, camera);
+  }
+  function loop(){ if(!running) return; frame(); requestAnimationFrame(loop); }
+  if(reduce){ frame(); } else { loop(); }
+})();
+</script>
+
+<!-- ════════════ GSAP + COUNTERS ════════════ -->
+<script>
+/* GSAP scroll motion */
+(function(){
+  if(!window.gsap || !window.ScrollTrigger) return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* Lenis smooth scroll — synced to GSAP, degrades to native scroll if absent */
+  if(window.Lenis){
+    var lenis = new Lenis({
+      duration: 1.15,
+      easing: function(t){ return Math.min(1, 1.001 - Math.pow(2, -10*t)); },
+      wheelMultiplier: 1,
+      touchMultiplier: 1.8
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(function(time){ lenis.raf(time * 1000); });
+    gsap.ticker.lagSmoothing(0);
+    /* ease nav / CTA links to their section instead of jumping */
+    document.querySelectorAll('a[href^="#"]').forEach(function(a){
+      a.addEventListener('click', function(e){
+        var id = a.getAttribute('href');
+        if(id.length > 1){
+          var el = document.querySelector(id);
+          if(el){ e.preventDefault(); lenis.scrollTo(el, {offset:-72}); }
+        }
+      });
+    });
+  }
+
+  /* hero entrance — fires on load, no scroll dependency */
+  gsap.from('[data-hero] > *', {opacity:0, y:38, duration:1.1, ease:'power3.out', stagger:.13, delay:.2});
+
+  /* scroll reveals — IntersectionObserver instead of ScrollTrigger
+     avoids the Lenis virtual-scroll / ScrollTrigger position mismatch on PC */
+  var toReveal = document.querySelectorAll('[data-rise],[data-stagger]');
+
+  /* hide immediately so there's no visible-then-hidden flash */
+  toReveal.forEach(function(el){
+    var targets = el.hasAttribute('data-stagger') ? Array.from(el.children) : [el];
+    gsap.set(targets, {opacity:0, y:44});
+  });
+
+  var revealIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      revealIO.unobserve(e.target);
+      var el = e.target;
+      if(el.hasAttribute('data-stagger')){
+        gsap.to(Array.from(el.children),
+          {opacity:1, y:0, duration:.85, ease:'power3.out', stagger:.1, clearProps:'transform'});
+      } else {
+        gsap.to(el, {opacity:1, y:0, duration:.95, ease:'power3.out', clearProps:'transform'});
+      }
+    });
+  },{threshold:0.08, rootMargin:'0px 0px -6% 0px'});
+
+  toReveal.forEach(function(el){ revealIO.observe(el); });
+
+  /* failsafe — after 0.8s force-reveal anything still hidden */
+  setTimeout(function(){
+    toReveal.forEach(function(el){
+      var targets = el.hasAttribute('data-stagger') ? Array.from(el.children) : [el];
+      targets.forEach(function(t){
+        if(parseFloat(gsap.getProperty(t,'opacity')) < 0.5){
+          gsap.set(t, {opacity:1, y:0});
+        }
+      });
+    });
+  }, 800);
+})();
+
+/* animated stat counters */
+(function(){
+  var els = document.querySelectorAll('[data-count]');
+  var prefix = {'20':'$','4':''};
+  var suffixes = {'20':'K+','12':'s','72':'h','4':''};
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      io.unobserve(e.target);
+      var el  = e.target;
+      var end = parseInt(el.dataset.count, 10);
+      var sfx = el.dataset.suffix || '';
+      var isRed = el.classList.contains('accent');
+      var start = performance.now();
+      var dur = 1400;
+      (function tick(now){
+        var p = Math.min((now - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        var val = Math.round(end * ease);
+        el.textContent = (isRed && end === 10 ? '$' : '') + val + sfx;
+        if(p < 1) requestAnimationFrame(tick);
+      })(start);
+    });
+  },{threshold:.5});
+  els.forEach(function(el){ io.observe(el); });
+})();
+
+/* 3D card tilt — VanillaTilt */
+(function(){
+  if(!window.VanillaTilt) return;
+
+  /* feature + problem cards: full tilt, no glare */
+  VanillaTilt.init(document.querySelectorAll('.fc,.pc'), {
+    max:          10,
+    speed:        600,
+    scale:        1.02,
+    perspective:  900,
+    easing:       'cubic-bezier(0.16, 1, 0.3, 1)',
+    glare:        false,
+    gyroscope:    false,
+    touchEnabled: false
+  });
+
+  /* stat cards */
+  VanillaTilt.init(document.querySelectorAll('.st'), {
+    max:          7,
+    speed:        600,
+    scale:        1.018,
+    perspective:  1000,
+    easing:       'cubic-bezier(0.16, 1, 0.3, 1)',
+    glare:        false,
+    gyroscope:    false,
+    touchEnabled: false
+  });
+
+  /* investment hero card */
+  VanillaTilt.init(document.querySelectorAll('.inv-card'), {
+    max:          4,
+    speed:        800,
+    scale:        1.008,
+    perspective:  1400,
+    easing:       'cubic-bezier(0.16, 1, 0.3, 1)',
+    glare:        false,
+    gyroscope:    false,
+    touchEnabled: false
+  });
+})();
+
+/* open Calendly popup from every primary CTA — design untouched */
+(function(){
+  var CAL = 'https://calendly.com/energyplusoff/30min'
+          + '?background_color=0a0a0a&text_color=f5f5f7&primary_color=ed2024';
+  function openCal(e){
+    e.preventDefault();
+    e.stopPropagation();          /* prevent the smooth-scroll handler from also firing */
+    if(window.Calendly){ Calendly.initPopupWidget({url: CAL}); }
+    else { window.open(CAL, '_blank'); }
+    return false;
+  }
+  document.querySelectorAll('.btn.pri').forEach(function(b){
+    b.addEventListener('click', openCal, true);  /* capture phase */
+  });
+})();
+</script>
+</body>
+</html>
